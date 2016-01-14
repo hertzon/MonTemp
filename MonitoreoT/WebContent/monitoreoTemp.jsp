@@ -96,7 +96,7 @@
 					jsonstr=jsonstr.substring(0, jsonstr.length()-3)+"];";
 					
 					out.println(jsonstr);
-					out.println("var temperatura_actual="+temperaturas_promedio[hora-1]+";");
+					out.println("var temperatura_actual="+temperaturas_promedio[horaActual]+";");
 					out.println("var maximo="+maximo+";");
 					out.println("var minimo="+minimo+";");					
 					hour=hour.substring(0, hour.length()-4);
