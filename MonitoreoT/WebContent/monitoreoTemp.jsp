@@ -56,7 +56,7 @@
 					int hora=21;
 		
 					int ndia=Integer.parseInt(dia);
-					out.println("var diaHoy="+ndia+";");
+					out.println("var ndia="+ndia+";");
 					float[] temperaturas_promedio=new float[24];
 					for (int i=0;i<temperaturas_promedio.length;i++){
 						temperaturas_promedio[i]=0;
@@ -67,7 +67,7 @@
 					StringBuilder json = new StringBuilder();
 					String hour=null;
 					out.println("var chartData1 = [{");
-					for (hora=0;hora<=horaActual;hora++){
+					for (hora=0;hora<=23;hora++){
 						String query="select * from temps where extract(day from time)="+ndia+" and extract(hour from time)="+hora+";";
 						Statement st=conDB.createStatement();
 						ResultSet rs=st.executeQuery(query);
@@ -94,13 +94,45 @@
 					}
 					String jsonstr=json.toString();
 					jsonstr=jsonstr.substring(0, jsonstr.length()-3)+"];";
+					
 					out.println(jsonstr);
 					out.println("var temperatura_actual="+temperaturas_promedio[hora-1]+";");
 					out.println("var maximo="+maximo+";");
-					out.println("var minimo="+minimo+";");
-					
+					out.println("var minimo="+minimo+";");					
 					hour=hour.substring(0, hour.length()-4);
 					out.println("var date="+"\""+hour+"\""+";");
+						
+					//dia ayer
+					for (int i=0;i<temperaturas_promedio.length;i++){
+						temperaturas_promedio[i]=0;
+					}
+					int diaAyer=ndia-1;
+					out.println("var chartDataAyer = [{");
+					
+					StringBuilder jsonAyer = new StringBuilder();
+					for (hora=0;hora<=23;hora++){
+						String queryAyer="select * from temps where extract(day from time)="+diaAyer+" and extract(hour from time)="+hora+";";	
+						Statement stAyer=conDB.createStatement();
+						ResultSet rsAyer=stAyer.executeQuery(queryAyer);
+						rsAyer=stAyer.executeQuery(queryAyer);
+						int n=0;
+						while (rsAyer.next()){
+							n++;
+							temperaturas_promedio[hora]=temperaturas_promedio[hora]+rsAyer.getFloat("temp");
+							hour=rsAyer.getString("time");
+							
+						}	
+						temperaturas_promedio[hora]=(float)temperaturas_promedio[hora]/n;						
+						jsonAyer.append("\"date\": "+"\""+hora+"\""+","+"\r");
+						jsonAyer.append("\"temperatura\": "+"\""+temperaturas_promedio[hora]+"\""+"\r");
+						jsonAyer.append("}"+","+"{"+"\r");
+					}							
+					String jsonstrAyer=jsonAyer.toString();
+					jsonstrAyer=jsonstrAyer.substring(0, jsonstrAyer.length()-3)+"];";
+					out.println(jsonstrAyer);
+					
+					
+					
 					conDB.close();				
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
@@ -210,12 +242,20 @@
 		<div class="row">
 			<div class="col-md-12 col-sm-12 text-center">
 				<div class="bloques">
-					<h4 class="font-green-sharp">Temperatura leida Base de Datos</h4>
+					<h4 class="font-green-sharp">Temperatura de Hoy</h4>
 					<!--  <div id="chartdiv" style="width: 640px; height: 400px;"></div>-->
 					<div id="chartdiv" style="width:100%; height:400px;"></div>
 				</div>
 			</div>
-
+		</div>
+		<div class="row">
+			<div class="col-md-12 col-sm-12 text-center">
+				<div class="bloques">
+					<h4 class="font-green-sharp">Temperatura de Ayer</h4>
+					<!--  <div id="chartdiv" style="width: 640px; height: 400px;"></div>-->
+					<div id="chartdivAyer" style="width:100%; height:400px;"></div>
+				</div>
+			</div>
 		</div>
 	</div>
 	
@@ -235,6 +275,7 @@
 		chart.title="horas del dia";
 		chart.categoryField = "date";	
 
+		//Grafica Hoy
 
 		var graph = new AmCharts.AmGraph();
 		graph.valueField = "temperatura";
@@ -274,6 +315,53 @@
         chart.addValueAxis(valueAxis);
 
 		chart.write('chartdiv');
+
+		//Grafica Ayer
+		var chartAyer = new AmCharts.AmSerialChart();
+		chartAyer.dataProvider = chartDataAyer;
+		chartAyer.fontSize=18
+		chartAyer.title="horas del dia";
+		chartAyer.categoryField = "date";
+
+
+		var graphAyer = new AmCharts.AmGraph();
+		graphAyer.valueField = "temperatura";
+		graphAyer.type = "smoothedLine";
+		graphAyer.min=10;
+		graphAyer.theme="patterns";
+		graphAyer.bullet = "round";
+		graphAyer.bulletSize=8,
+		graphAyer.lineAlpha=3;
+		graphAyer.lineThickness=3;
+		graphAyer.balloonText = "Temperatura: [[value]]<br><b><span style='font-size:14px;'> a las: [[category]] horas</span></b>";
+		chartAyer.addGraph(graphAyer);
+
+		// CURSOR
+        var chartCursorAyer = new AmCharts.ChartCursor();
+        chartCursorAyer.cursorAlpha = 0;
+        chartCursorAyer.cursorPosition = "mouse";
+        chartCursorAyer.categoryBalloonDateFormat = "YYYY";
+       	chartAyer.addChartCursor(chartCursorAyer);
+		
+
+		var categoryAxisAyer = chartAyer.categoryAxis;
+		categoryAxisAyer.autoGridCount  = false;
+		categoryAxisAyer.gridCount = chartDataAyer.length;
+		categoryAxisAyer.gridPosition = "start";
+		categoryAxisAyer.minorGridEnabled = true;
+        categoryAxisAyer.minorGridAlpha = 0.15;
+		categoryAxisAyer.labelRotation = 0;
+
+		var valueAxisAyer = new AmCharts.ValueAxis();
+		valueAxisAyer.title = "Temperatura Grados Centigrados";
+		valueAxisAyer.dashLength = 1;
+		valueAxisAyer.color="#6c7b88";
+		valueAxisAyer.titleColor="#6c7b88";
+		valueAxisAyer.minimum=10;
+		valueAxisAyer.maximum=30;
+        chartAyer.addValueAxis(valueAxisAyer);
+
+		chartAyer.write('chartdivAyer');
 	});
 </script>
 
